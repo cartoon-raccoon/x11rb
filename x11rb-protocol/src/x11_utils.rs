@@ -595,6 +595,7 @@ impl<T: Serialize> Serialize for [T] {
 
 // This macro is used by the generated code to implement e.g. `std::ops::BitOr` and
 // `std::ops::BitOrAssign`.
+// t is the wrapper type, u is the inner type.
 macro_rules! bitmask_binop {
     ($t:ty, $u:ty) => {
         impl core::ops::BitOr for $t {
@@ -646,6 +647,12 @@ macro_rules! bitmask_binop {
             type Output = $t;
             fn bitand(self, other: $t) -> Self::Output {
                 <$t>::from(self) & other
+            }
+        }
+        impl core::ops::Not for $t {
+            type Output = $t;
+            fn not(self) -> Self::Output {
+                Self::from(!(self.0))
             }
         }
         impl core::ops::BitAndAssign for $t {
