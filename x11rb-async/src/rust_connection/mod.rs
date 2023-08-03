@@ -87,17 +87,13 @@ impl RustConnection {
         ConnectError,
     > {
         // Parse the display name.
-        let addrs = x11rb_protocol::parse_display::parse_display(display_name)
-            .ok_or(ConnectError::DisplayParsingError)?;
+        let addrs = x11rb_protocol::parse_display::parse_display(display_name)?;
 
         // Connect to the stream.
-        let (stream, screen) = nb_connect::connect(&addrs).await?;
+        let (stream, screen, (family, address)) = nb_connect::connect(&addrs).await?;
 
         // Wrap the stream in a connection.
         let stream = StreamAdaptor::new(stream)?;
-
-        // Get the peer address of the socket.
-        let (family, address) = stream.get_ref().peer_addr()?;
 
         // Use this to get authority information.
         let (auth_name, auth_data) = blocking::unblock(move || {
@@ -367,7 +363,7 @@ impl<S: Stream + Send + Sync> RustConnection<S> {
 
         // Start prefetching if necessary.
         if *mrl == MaxRequestBytes::Unknown {
-            tracing::info!("Prefetching maximum request length");
+            tracing::debug!("Prefetching maximum request length");
             let cookie = crate::protocol::bigreq::enable(self)
                 .await
                 .map(|cookie| {
@@ -645,7 +641,7 @@ impl<S: Stream + Send + Sync> RequestConnection for RustConnection<S> {
                             .unwrap_or(std::usize::MAX);
 
                         *mrl = MaxRequestBytes::Known(total);
-                        tracing::info!("Maximum request length is {} bytes", total);
+                        tracing::debug!("Maximum request length is {} bytes", total);
                         total
                     }
                 }

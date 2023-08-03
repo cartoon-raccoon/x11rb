@@ -2,7 +2,7 @@
 
 use crate::x11_utils::X11Error;
 
-pub use x11rb_protocol::errors::{ConnectError, IdsExhausted, ParseError};
+pub use x11rb_protocol::errors::{ConnectError, DisplayParsingError, IdsExhausted, ParseError};
 
 /// An error occurred  while dynamically loading libxcb.
 #[cfg(feature = "dl-libxcb")]
@@ -26,11 +26,7 @@ impl std::fmt::Display for LibxcbLoadError {
             LibxcbLoadError::GetSymbolError(symbol, e) => write!(
                 f,
                 "failed to get symbol \"{}\": {}",
-                symbol
-                    .iter()
-                    .flat_map(|&c| std::ascii::escape_default(c))
-                    .map(char::from)
-                    .collect::<String>(),
+                symbol.escape_ascii(),
                 e,
             ),
         }
