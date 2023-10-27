@@ -15,16 +15,19 @@ license = "MIT OR Apache-2.0"
 keywords = ["xcb", "X11"]
 
 [dependencies]
-x11rb-protocol = { version = "0.12.0", path = "../x11rb-protocol" }
+x11rb-protocol = { version = "0.12.0", default-features = false, features = ["std"], path = "../x11rb-protocol" }
 libc = { version = "0.2", optional = true }
 libloading = { version = "0.8.0", optional = true }
 once_cell = { version = "1.17", optional = true }
-gethostname = "0.3.0"
 as-raw-xcb-connection = { version = "1.0", optional = true }
 tracing = { version = "0.1", optional = true, default-features = false }
-rustix = { version = "0.38", default-features = false, features = ["std", "event", "fs", "net"] }
+rustix = { version = "0.38", default-features = false, features = ["std", "event", "fs", "net", "system"] }
+
+[target.'cfg(not(unix))'.dependencies]
+gethostname = "0.4"
 
 [dev-dependencies]
+gethostname = "0.4"
 polling = "2.8.0"
 tracing-subscriber = "0.3"
 
@@ -44,6 +47,12 @@ image = []
 resource_manager = ["x11rb-protocol/resource_manager"]
 
 dl-libxcb = ["allow-unsafe-code", "libloading", "once_cell"]
+
+# Enable extra traits on protocol types.
+extra-traits = ["x11rb-protocol/extra-traits"]
+
+# Add the ability to parse X11 requests (not normally needed).
+request-parsing = ["x11rb-protocol/request-parsing"]
 
 # Enable this feature to enable all the X11 extensions
 all-extensions = [

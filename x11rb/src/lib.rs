@@ -84,9 +84,9 @@
 //!
 //! ### Feature flags for specific X11 extensions
 //!
-//! By default, only the core X11 protocol and X11 extensions that are
-//! needed internally are enabled. Further extensions need to be explicitly enabled via their
-//! feature flag:
+//! By default, only the core X11 protocol and X11 extensions that are needed internally are
+//! enabled. These are the `bigreq`, `ge` and `xc_misc` extensions. Further extensions need to be
+//! explicitly enabled via their feature flag:
 //!
 //! `composite`, `damage`, `dpms`, `dri2`, `dri3`, `glx`, `present`, `randr`, `record`, `render`,
 //! `res`, `screensaver`, `shape`, `shm`, `sync`, `xevie`, `xf86dri`, `xf86vidmode`, `xfixes`,
@@ -99,15 +99,19 @@
 //!
 //! Additionally, the following flags exist:
 //! * `allow-unsafe-code`: Enable features that require `unsafe`. Without this flag,
-//!   `x11rb::xcb_ffi::XCBConnection` and some support code for it are unavailable.
-//! * `cursor`: Enable the code in [crate::cursor] for loading cursor files.
-//! * `resource_manager`: Enable the code in [crate::resource_manager] for loading and querying the
+//!   [`xcb_ffi::XCBConnection`] and some support code for it are unavailable.
+//! * `cursor`: Enable the code in [cursor] for loading cursor files.
+//! * `resource_manager`: Enable the code in [resource_manager] for loading and querying the
 //!   X11 resource database.
-//! * `image`: Enable the code in [crate::image] for working with pixel image data.
+//! * `image`: Enable the code in [image] for working with pixel image data.
 //! * `dl-libxcb`: Enabling this feature will prevent from libxcb being linked to the
 //!   resulting executable. Instead libxcb will be dynamically loaded at runtime.
-//!   This feature adds the [`crate::xcb_ffi::load_libxcb`] function, that allows to load
+//!   This feature adds the [`xcb_ffi::load_libxcb`] function, that allows to load
 //!   libxcb and check for success or failure.
+//! * `extra-traits`: Enable some additional traits for generated code, like `Eq`, `Ord` and
+//!   `Hash`. This is not needed by default and adds a large amount of code that bloats codegen
+//!   time
+//! * `request-parsing`: Add the ability to parse X11 requests. Not normally needed.
 //!
 //! # Integrating x11rb with an Event Loop
 //!
@@ -175,6 +179,7 @@ mod test;
 
 use errors::ConnectError;
 use protocol::xproto::{Keysym, Timestamp};
+use std::ffi::OsString;
 
 /// Establish a new connection to an X11 server.
 ///
@@ -205,3 +210,15 @@ pub const CURRENT_TIME: Timestamp = 0;
 
 /// This constant can be used to fill unused entries in `Keysym` tables
 pub const NO_SYMBOL: Keysym = 0;
+
+#[cfg(not(unix))]
+fn hostname() -> OsString {
+    gethostname::gethostname()
+}
+
+#[cfg(unix)]
+fn hostname() -> OsString {
+    use std::os::unix::ffi::OsStringExt;
+
+    OsString::from_vec(rustix::system::uname().nodename().to_bytes().to_vec())
+}

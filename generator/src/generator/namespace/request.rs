@@ -425,9 +425,17 @@ fn emit_request_struct(
 
     let mut derives = Derives::all();
     generator.filter_derives_for_fields(&mut derives, &request_def.fields.borrow(), true);
+    let extras = derives.extra_traits_list();
     let derives = derives.to_list();
     if !derives.is_empty() {
         outln!(out, "#[derive({})]", derives.join(", "));
+    }
+    if !extras.is_empty() {
+        outln!(
+            out,
+            "#[cfg_attr(feature = \"extra-traits\", derive({}))]",
+            extras.join(", ")
+        );
     }
     if !gathered.has_fds() {
         outln!(
@@ -466,6 +474,30 @@ fn emit_request_struct(
     if has_members {
         outln!(out, "}}",);
     }
+
+    // Implement `Debug` manually if `extra-traits` is not enabled.
+    outln!(out, "#[cfg(not(feature = \"extra-traits\"))]");
+    outln!(
+        out,
+        "impl{lifetime} core::fmt::Debug for {name}Request{lifetime} {{",
+        lifetime = struct_lifetime_block,
+        name = name
+    );
+    out.indented(|out| {
+        outln!(
+            out,
+            "fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {{"
+        );
+        out.indented(|out| {
+            outln!(
+                out,
+                "f.debug_struct(\"{name}Request\").finish_non_exhaustive()",
+                name = name
+            );
+        });
+        outln!(out, "}}");
+    });
+    outln!(out, "}}");
 
     // Methods implemented on every request
     outln!(
@@ -846,18 +878,17 @@ fn emit_request_struct(
             );
 
             let fds_arg = if gathered.fd_lists.is_empty() {
-                format!(
-                    "vec![{}]",
-                    gathered
-                        .single_fds
-                        .iter()
-                        .enumerate()
-                        .map(|(i, single_fd)| {
-                            let sep = if i == 0 { "" } else { ", " };
-                            format!("{}self.{}", sep, single_fd)
-                        })
-                        .collect::<String>(),
-                )
+                let mut fds_arg = String::from("vec![");
+                let mut sep = "";
+                for single_fd in &gathered.single_fds {
+                    fds_arg.push_str(sep);
+                    fds_arg.push_str("self.");
+                    fds_arg.push_str(single_fd);
+
+                    sep = ", ";
+                }
+                fds_arg.push(']');
+                fds_arg
             } else if gathered.fd_lists.len() == 1 && gathered.single_fds.is_empty() {
                 format!("self.{}", gathered.fd_lists[0])
             } else {
@@ -917,6 +948,10 @@ fn emit_request_struct(
             out,
             "/// Parse this request given its header, its body, and any fds that go along \
              with it"
+        );
+        outln!(
+            out,
+            "#[cfg(feature = \"request-parsing\")]"
         );
         if gathered.has_fds() {
             outln!(
