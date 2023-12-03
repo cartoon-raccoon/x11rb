@@ -476,28 +476,17 @@ fn emit_request_struct(
     }
 
     // Implement `Debug` manually if `extra-traits` is not enabled.
-    outln!(out, "#[cfg(not(feature = \"extra-traits\"))]");
     outln!(
         out,
-        "impl{lifetime} core::fmt::Debug for {name}Request{lifetime} {{",
-        lifetime = struct_lifetime_block,
-        name = name
+        "impl_debug_if_no_extra_traits!({}Request{}, \"{}Request\");",
+        name,
+        if struct_lifetime_block.is_empty() {
+            ""
+        } else {
+            "<'_>"
+        },
+        name
     );
-    out.indented(|out| {
-        outln!(
-            out,
-            "fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {{"
-        );
-        out.indented(|out| {
-            outln!(
-                out,
-                "f.debug_struct(\"{name}Request\").finish_non_exhaustive()",
-                name = name
-            );
-        });
-        outln!(out, "}}");
-    });
-    outln!(out, "}}");
 
     // Methods implemented on every request
     outln!(
@@ -994,7 +983,7 @@ fn emit_request_struct(
             let fields = request_def.fields.borrow();
             let mut seen_complete_header = false;
             let mut is_first_body_field = true;
-            for (_, field) in fields.iter().enumerate() {
+            for field in fields.iter() {
                 match field.name() {
                     // These are all in the header. Ignore them.
                     Some("major_opcode") | Some("minor_opcode") => continue,
