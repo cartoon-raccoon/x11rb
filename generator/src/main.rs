@@ -3,11 +3,12 @@
     trivial_numeric_casts,
     unsafe_code,
     unreachable_pub,
-    unused_import_braces,
-    unused_must_use,
+    unused,
     unused_qualifications
 )]
 #![forbid(unsafe_code)]
+// This crate is not shipped to users and does not follow our MSRV
+#![allow(clippy::incompatible_msrv)]
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;

@@ -1,6 +1,5 @@
 //! Collects X11 data into "packets" to be parsed by a display.
 
-use core::convert::TryInto;
 use core::fmt;
 use core::mem::replace;
 
@@ -125,7 +124,7 @@ fn extra_length(buffer: &[u8]) -> usize {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::PacketReader;
     use alloc::{vec, vec::Vec};

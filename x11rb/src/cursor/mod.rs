@@ -6,11 +6,10 @@ use crate::connection::Connection;
 use crate::cookie::Cookie as X11Cookie;
 use crate::errors::{ConnectionError, ReplyOrIdError};
 use crate::protocol::render::{self, Pictformat};
-use crate::protocol::xproto::{self, Font, Window};
+use crate::protocol::xproto::{self, FontWrapper, Window};
 use crate::resource_manager::Database;
 use crate::NONE;
-
-use std::fs::File;
+use xcursor::parser::Image;
 
 mod find_cursor;
 mod parse_cursor;
@@ -31,7 +30,6 @@ enum RenderSupport {
 /// A cookie for creating a `Handle`
 #[derive(Debug)]
 pub struct Cookie<'a, 'b, C: Connection> {
-    conn: &'a C,
     screen: &'a xproto::Screen,
     resource_database: &'b Database,
     render_info: Option<(
@@ -51,7 +49,6 @@ impl<C: Connection> Cookie<'_, '_, C> {
             picture_format = find_format(&formats.reply()?);
         }
         Self::from_replies(
-            self.conn,
             self.screen,
             self.resource_database,
             render_version,
@@ -73,7 +70,6 @@ impl<C: Connection> Cookie<'_, '_, C> {
             }
         }
         Ok(Some(Self::from_replies(
-            self.conn,
             self.screen,
             self.resource_database,
             render_version,
@@ -82,7 +78,6 @@ impl<C: Connection> Cookie<'_, '_, C> {
     }
 
     fn from_replies(
-        conn: &C,
         screen: &xproto::Screen,
         resource_database: &Database,
         render_version: (u32, u32),
@@ -95,9 +90,11 @@ impl<C: Connection> Cookie<'_, '_, C> {
         } else {
             RenderSupport::None
         };
-        let theme = resource_database
-            .get_string("Xcursor.theme", "")
-            .map(|theme| theme.to_string());
+        let theme = std::env::var("XCURSOR_THEME").ok().or_else(|| {
+            resource_database
+                .get_string("Xcursor.theme", "")
+                .map(|theme| theme.to_string())
+        });
         let cursor_size = match resource_database.get_value("Xcursor.size", "") {
             Ok(Some(value)) => value,
             _ => 0,
@@ -107,11 +104,8 @@ impl<C: Connection> Cookie<'_, '_, C> {
             _ => 0,
         };
         let cursor_size = get_cursor_size(cursor_size, xft_dpi, screen);
-        let cursor_font = conn.generate_id()?;
-        let _ = xproto::open_font(conn, cursor_font, b"cursor")?;
         Ok(Handle {
             root: screen.root,
-            cursor_font,
             picture_format,
             render_support,
             theme,
@@ -124,7 +118,6 @@ impl<C: Connection> Cookie<'_, '_, C> {
 #[derive(Debug)]
 pub struct Handle {
     root: Window,
-    cursor_font: Font,
     picture_format: Pictformat,
     render_support: RenderSupport,
     theme: Option<String>,
@@ -159,7 +152,6 @@ impl Handle {
             None
         };
         Ok(Cookie {
-            conn,
             screen,
             resource_database,
             render_info,
@@ -176,30 +168,24 @@ impl Handle {
     }
 }
 
-fn open_cursor(theme: &Option<String>, name: &str) -> Option<find_cursor::Cursor<File>> {
-    if let Some(theme) = theme {
-        if let Ok(cursor) = find_cursor::find_cursor(theme, name) {
-            return Some(cursor);
-        }
-    }
-    if let Ok(cursor) = find_cursor::find_cursor("default", name) {
-        Some(cursor)
-    } else {
-        None
-    }
+fn open_cursor(theme: &Option<String>, name: &str) -> Option<find_cursor::Cursor> {
+    theme
+        .as_ref()
+        .and_then(|theme| find_cursor::find_cursor(theme, name))
+        .or_else(|| find_cursor::find_cursor("default", name))
 }
 
 fn create_core_cursor<C: Connection>(
     conn: &C,
-    cursor_font: Font,
     cursor: u16,
 ) -> Result<xproto::Cursor, ReplyOrIdError> {
     let result = conn.generate_id()?;
+    let cursor_font = FontWrapper::open_font(conn, b"cursor")?;
     let _ = xproto::create_glyph_cursor(
         conn,
         result,
-        cursor_font,
-        cursor_font,
+        cursor_font.font(),
+        cursor_font.font(),
         cursor,
         cursor + 1,
         // foreground color
@@ -207,9 +193,9 @@ fn create_core_cursor<C: Connection>(
         0,
         0,
         // background color
-        u16::max_value(),
-        u16::max_value(),
-        u16::max_value(),
+        u16::MAX,
+        u16::MAX,
+        u16::MAX,
     )?;
     Ok(result)
 }
@@ -217,54 +203,64 @@ fn create_core_cursor<C: Connection>(
 fn create_render_cursor<C: Connection>(
     conn: &C,
     handle: &Handle,
-    image: &parse_cursor::Image,
+    image: &Image,
     storage: &mut Option<(xproto::Pixmap, xproto::Gcontext, u16, u16)>,
 ) -> Result<render::Animcursorelt, ReplyOrIdError> {
-    let (cursor, picture) = (conn.generate_id()?, conn.generate_id()?);
-
-    // Get a pixmap of the right size and a gc for it
-    let (pixmap, gc) = if storage.map(|(_, _, w, h)| (w, h)) == Some((image.width, image.height)) {
-        storage.map(|(pixmap, gc, _, _)| (pixmap, gc)).unwrap()
-    } else {
-        let (pixmap, gc) = if let Some((pixmap, gc, _, _)) = storage {
-            let _ = xproto::free_gc(conn, *gc)?;
-            let _ = xproto::free_pixmap(conn, *pixmap)?;
-            (*pixmap, *gc)
-        } else {
-            (conn.generate_id()?, conn.generate_id()?)
-        };
-        let _ = xproto::create_pixmap(conn, 32, pixmap, handle.root, image.width, image.height)?;
-        let _ = xproto::create_gc(conn, gc, pixmap, &Default::default())?;
-
-        *storage = Some((pixmap, gc, image.width, image.height));
-        (pixmap, gc)
+    let to_u16 = |input: u32| {
+        u16::try_from(input).expect(
+            "xcursor-rs has a 16 bit limit on cursor size, but some number does not fit into u16?!",
+        )
     };
 
-    // Sigh. We need the pixel data as a bunch of bytes.
-    let pixels = crate::x11_utils::Serialize::serialize(&image.pixels[..]);
+    let (width, height) = (to_u16(image.width), to_u16(image.height));
+
+    // Get a pixmap of the right size and a gc for it
+    let (pixmap, gc) = match *storage {
+        Some((pixmap, gc, w, h)) if (w, h) == (width, height) => (pixmap, gc),
+        _ => {
+            let (pixmap, gc) = if let Some((pixmap, gc, _, _)) = storage {
+                let _ = xproto::free_gc(conn, *gc)?;
+                let _ = xproto::free_pixmap(conn, *pixmap)?;
+                (*pixmap, *gc)
+            } else {
+                (conn.generate_id()?, conn.generate_id()?)
+            };
+            let _ = xproto::create_pixmap(conn, 32, pixmap, handle.root, width, height)?;
+            let _ = xproto::create_gc(conn, gc, pixmap, &Default::default())?;
+
+            *storage = Some((pixmap, gc, width, height));
+            (pixmap, gc)
+        }
+    };
+
     let _ = xproto::put_image(
         conn,
         xproto::ImageFormat::Z_PIXMAP,
         pixmap,
         gc,
-        image.width,
-        image.height,
+        width,
+        height,
         0,
         0,
         0,
         32,
-        &pixels,
+        &image.pixels_rgba,
     )?;
 
-    let _ = render::create_picture(
+    let picture = render::PictureWrapper::create_picture(
         conn,
-        picture,
         pixmap,
         handle.picture_format,
         &Default::default(),
     )?;
-    let _ = render::create_cursor(conn, cursor, picture, image.x_hot, image.y_hot)?;
-    let _ = render::free_picture(conn, picture)?;
+    let cursor = conn.generate_id()?;
+    let _ = render::create_cursor(
+        conn,
+        cursor,
+        picture.picture(),
+        to_u16(image.xhot),
+        to_u16(image.yhot),
+    )?;
 
     Ok(render::Animcursorelt {
         cursor,
@@ -280,9 +276,7 @@ fn load_cursor<C: Connection>(
     // Find the right cursor, load it directly if it is a core cursor
     let cursor_file = match open_cursor(&handle.theme, name) {
         None => return Ok(NONE),
-        Some(find_cursor::Cursor::CoreChar(c)) => {
-            return create_core_cursor(conn, handle.cursor_font, c)
-        }
+        Some(find_cursor::Cursor::CoreChar(c)) => return create_core_cursor(conn, c),
         Some(find_cursor::Cursor::File(f)) => f,
     };
 

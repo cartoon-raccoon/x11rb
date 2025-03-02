@@ -1,8 +1,6 @@
 //! A pure-rust implementation of a connection to an X11 server.
 
-use std::convert::TryInto;
 use std::io::IoSlice;
-use std::mem::drop;
 use std::sync::{Condvar, Mutex, MutexGuard, TryLockError};
 use std::time::Instant;
 
@@ -725,7 +723,7 @@ impl<S: Stream> RequestConnection for RustConnection<S> {
                     .unwrap_or_else(|| self.setup.maximum_request_length.into())
                     // Turn the u32 into usize, using the max value in case of overflow
                     .try_into()
-                    .unwrap_or(usize::max_value());
+                    .unwrap_or(usize::MAX);
                 let length = length * 4;
                 *max_bytes = Known(length);
                 crate::info!("Maximum request length is {} bytes", length);

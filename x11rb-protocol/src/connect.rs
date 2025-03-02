@@ -9,7 +9,6 @@ use crate::xauth::{get_auth, Family};
 
 use alloc::{vec, vec::Vec};
 
-use core::convert::TryFrom;
 use core::fmt;
 
 /// The connection handshake used to connect to the X11 server.
@@ -45,6 +44,8 @@ use core::fmt;
 /// to establish an X11 connection like so:
 ///
 /// ```rust,no_run
+/// # #[cfg(feature = "std")]
+/// # {
 /// # use x11rb_protocol::connect::Connect;
 /// # use x11rb_protocol::xauth::Family;
 /// # use std::{error::Error, io::prelude::*};
@@ -86,6 +87,7 @@ use core::fmt;
 /// // get the setup used for our connection
 /// let setup = connect.into_setup()?;
 /// # Ok(())
+/// # }
 /// # }
 /// ```
 ///
@@ -263,14 +265,13 @@ impl TryFrom<Connect> for Setup {
 }
 
 #[cfg(test)]
-#[cfg(feature = "extra-traits")]
+#[cfg(all(feature = "extra-traits", feature = "std"))]
 mod tests {
     use super::Connect;
     use crate::errors::ConnectError;
     use crate::protocol::xproto::{ImageOrder, Setup, SetupAuthenticate, SetupFailed};
     use crate::x11_utils::Serialize;
     use alloc::vec;
-    use core::mem::drop;
 
     fn test_setup() -> Setup {
         let mut s = Setup {

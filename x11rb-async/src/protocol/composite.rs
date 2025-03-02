@@ -60,7 +60,7 @@ where
     assert_eq!(slices.len(), bytes.len());
     conn.send_request_with_reply(&slices, fds).await
 }
-/// Redirect the heirarchy starting at “window” to off-screen storage..
+/// Redirect the hierarchy starting at "window" to off-screen storage..
 ///
 /// The hierarchy starting at 'window' is directed to off-screen
 /// storage.  When all clients enabling redirection terminate,
@@ -71,10 +71,10 @@ where
 ///
 /// # Fields
 ///
-/// * `window` - The root of the heirarchy to redirect to off-screen storage.
+/// * `window` - The root of the hierarchy to redirect to off-screen storage.
 /// * `update` - Whether contents are automatically mirrored to the parent window.  If one client
-/// already specifies an update type of Manual, any attempt by another to specify a
-/// mode of Manual so will result in an Access error.
+///   already specifies an update type of Manual, any attempt by another to specify a
+///   mode of Manual so will result in an Access error.
 pub async fn redirect_window<Conn>(conn: &Conn, window: xproto::Window, update: Redirect) -> Result<VoidCookie<'_, Conn>, ConnectionError>
 where
     Conn: RequestConnection + ?Sized,
@@ -97,10 +97,10 @@ where
 ///
 /// # Fields
 ///
-/// * `window` - The root of the heirarchy to redirect to off-screen storage.
+/// * `window` - The root of the hierarchy to redirect to off-screen storage.
 /// * `update` - Whether contents are automatically mirrored to the parent window.  If one client
-/// already specifies an update type of Manual, any attempt by another to specify a
-/// mode of Manual so will result in an Access error.
+///   already specifies an update type of Manual, any attempt by another to specify a
+///   mode of Manual so will result in an Access error.
 pub async fn redirect_subwindows<Conn>(conn: &Conn, window: xproto::Window, update: Redirect) -> Result<VoidCookie<'_, Conn>, ConnectionError>
 where
     Conn: RequestConnection + ?Sized,
@@ -122,9 +122,9 @@ where
 /// # Fields
 ///
 /// * `window` - The window to terminate redirection of.  Must be redirected by the
-/// current client, or a Value error results.
+///   current client, or a Value error results.
 /// * `update` - The update type passed to RedirectWindows.  If this does not match the
-/// previously requested update type, a Value error results.
+///   previously requested update type, a Value error results.
 pub async fn unredirect_window<Conn>(conn: &Conn, window: xproto::Window, update: Redirect) -> Result<VoidCookie<'_, Conn>, ConnectionError>
 where
     Conn: RequestConnection + ?Sized,
@@ -145,10 +145,10 @@ where
 /// # Fields
 ///
 /// * `window` - The window to terminate redirection of.  Must have previously been
-/// selected for sub-redirection by the current client, or a Value error
-/// results.
+///   selected for sub-redirection by the current client, or a Value error
+///   results.
 /// * `update` - The update type passed to RedirectSubWindows.  If this does not match
-/// the previously requested update type, a Value error results.
+///   the previously requested update type, a Value error results.
 pub async fn unredirect_subwindows<Conn>(conn: &Conn, window: xproto::Window, update: Redirect) -> Result<VoidCookie<'_, Conn>, ConnectionError>
 where
     Conn: RequestConnection + ?Sized,
@@ -227,7 +227,7 @@ pub trait ConnectionExt: RequestConnection {
     {
         Box::pin(query_version(self, client_major_version, client_minor_version))
     }
-    /// Redirect the heirarchy starting at “window” to off-screen storage..
+    /// Redirect the hierarchy starting at "window" to off-screen storage..
     ///
     /// The hierarchy starting at 'window' is directed to off-screen
     /// storage.  When all clients enabling redirection terminate,
@@ -238,10 +238,10 @@ pub trait ConnectionExt: RequestConnection {
     ///
     /// # Fields
     ///
-    /// * `window` - The root of the heirarchy to redirect to off-screen storage.
+    /// * `window` - The root of the hierarchy to redirect to off-screen storage.
     /// * `update` - Whether contents are automatically mirrored to the parent window.  If one client
-    /// already specifies an update type of Manual, any attempt by another to specify a
-    /// mode of Manual so will result in an Access error.
+    ///   already specifies an update type of Manual, any attempt by another to specify a
+    ///   mode of Manual so will result in an Access error.
     fn composite_redirect_window(&self, window: xproto::Window, update: Redirect) -> Pin<Box<dyn Future<Output = Result<VoidCookie<'_, Self>, ConnectionError>> + Send + '_>>
     {
         Box::pin(redirect_window(self, window, update))
@@ -255,10 +255,10 @@ pub trait ConnectionExt: RequestConnection {
     ///
     /// # Fields
     ///
-    /// * `window` - The root of the heirarchy to redirect to off-screen storage.
+    /// * `window` - The root of the hierarchy to redirect to off-screen storage.
     /// * `update` - Whether contents are automatically mirrored to the parent window.  If one client
-    /// already specifies an update type of Manual, any attempt by another to specify a
-    /// mode of Manual so will result in an Access error.
+    ///   already specifies an update type of Manual, any attempt by another to specify a
+    ///   mode of Manual so will result in an Access error.
     fn composite_redirect_subwindows(&self, window: xproto::Window, update: Redirect) -> Pin<Box<dyn Future<Output = Result<VoidCookie<'_, Self>, ConnectionError>> + Send + '_>>
     {
         Box::pin(redirect_subwindows(self, window, update))
@@ -271,9 +271,9 @@ pub trait ConnectionExt: RequestConnection {
     /// # Fields
     ///
     /// * `window` - The window to terminate redirection of.  Must be redirected by the
-    /// current client, or a Value error results.
+    ///   current client, or a Value error results.
     /// * `update` - The update type passed to RedirectWindows.  If this does not match the
-    /// previously requested update type, a Value error results.
+    ///   previously requested update type, a Value error results.
     fn composite_unredirect_window(&self, window: xproto::Window, update: Redirect) -> Pin<Box<dyn Future<Output = Result<VoidCookie<'_, Self>, ConnectionError>> + Send + '_>>
     {
         Box::pin(unredirect_window(self, window, update))
@@ -285,10 +285,10 @@ pub trait ConnectionExt: RequestConnection {
     /// # Fields
     ///
     /// * `window` - The window to terminate redirection of.  Must have previously been
-    /// selected for sub-redirection by the current client, or a Value error
-    /// results.
+    ///   selected for sub-redirection by the current client, or a Value error
+    ///   results.
     /// * `update` - The update type passed to RedirectSubWindows.  If this does not match
-    /// the previously requested update type, a Value error results.
+    ///   the previously requested update type, a Value error results.
     fn composite_unredirect_subwindows(&self, window: xproto::Window, update: Redirect) -> Pin<Box<dyn Future<Output = Result<VoidCookie<'_, Self>, ConnectionError>> + Send + '_>>
     {
         Box::pin(unredirect_subwindows(self, window, update))

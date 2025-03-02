@@ -25,7 +25,6 @@
 //   begins with the second bit of each pixel etc.
 
 use std::borrow::Cow;
-use std::convert::{TryFrom, TryInto};
 
 use crate::connection::Connection;
 use crate::cookie::VoidCookie;
@@ -248,7 +247,6 @@ fn compute_stride(width: u16, bits_per_pixel: BitsPerPixel, scanline_pad: Scanli
 #[cfg(test)]
 mod test_stride {
     use super::compute_stride;
-    use std::convert::TryInto;
 
     #[test]
     fn test_stride() {
@@ -370,7 +368,6 @@ impl ScanlinePad {
 #[cfg(test)]
 mod test_scanline_pad {
     use super::ScanlinePad;
-    use std::convert::TryInto;
 
     #[test]
     fn number_conversions() {
@@ -755,7 +752,7 @@ impl<'a> Image<'a> {
         let mut result = Vec::with_capacity(
             (usize::from(self.height()) + lines_per_request - 1) / lines_per_request,
         );
-        let lines_per_request = lines_per_request.try_into().unwrap_or(u16::max_value());
+        let lines_per_request = lines_per_request.try_into().unwrap_or(u16::MAX);
         assert!(lines_per_request > 0);
 
         let (mut y_offset, mut byte_offset) = (0, 0);

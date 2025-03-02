@@ -4,8 +4,6 @@
 //! [`Serialize`] traits. These traits are used internally for parsing incoming data and producing
 //! outgoing data when talking with the X11 server.
 
-use core::convert::TryInto;
-
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -388,7 +386,7 @@ implement_serialize!(i64: 8);
 forward_float!(f32: u32);
 forward_float!(f64: u64);
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod float_tests {
     use super::{Serialize, TryParse};
 

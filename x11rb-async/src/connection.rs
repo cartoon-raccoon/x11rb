@@ -15,7 +15,6 @@ use x11rb_protocol::{DiscardMode, RawEventAndSeqNumber, SequenceNumber};
 use crate::errors::{ConnectionError, ParseError, ReplyError, ReplyOrIdError};
 use crate::{Cookie, CookieWithFds, VoidCookie};
 
-use std::boxed::Box;
 use std::future::Future;
 use std::io::IoSlice;
 use std::pin::Pin;
@@ -68,7 +67,7 @@ pub trait RequestConnection: Sync {
     fn send_trait_request_with_reply<'this, 'req, 'future, R>(
         &'this self,
         request: R,
-    ) -> Fut<'future, Cookie<'_, Self, R::Reply>, ConnectionError>
+    ) -> Fut<'future, Cookie<'this, Self, R::Reply>, ConnectionError>
     where
         'this: 'future,
         'req: 'future,
@@ -132,7 +131,7 @@ pub trait RequestConnection: Sync {
     fn send_trait_request_with_reply_with_fds<'this, 'req, 'future, R>(
         &'this self,
         request: R,
-    ) -> Fut<'future, CookieWithFds<'_, Self, R::Reply>, ConnectionError>
+    ) -> Fut<'future, CookieWithFds<'this, Self, R::Reply>, ConnectionError>
     where
         'this: 'future,
         'req: 'future,
