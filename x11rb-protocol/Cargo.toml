@@ -1,6 +1,6 @@
 [package]
 name = "x11rb-protocol"
-version = "0.13.1"
+version = "0.14.0"
 description = "Rust bindings to X11"
 authors = [
     "Uli Schlachter <psychon@znc.in>",
@@ -10,7 +10,7 @@ authors = [
 repository = "https://github.com/psychon/x11rb"
 readme = "../README.md"
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.68"
 license = "MIT OR Apache-2.0"
 keywords = ["xcb", "X11"]
 
@@ -18,7 +18,7 @@ keywords = ["xcb", "X11"]
 mostly-unused = true
 
 [dependencies]
-serde = { version = "1", features = ["derive"], optional = true }
+serde = { version = "1.0.96", features = ["derive"], optional = true }
 
 [dev-dependencies]
 criterion = "0.5"

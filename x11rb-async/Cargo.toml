@@ -1,6 +1,6 @@
 [package]
 name = "x11rb-async"
-version = "0.13.1"
+version = "0.14.0"
 description = "Async Rust bindings to X11"
 authors = [
     "Uli Schlachter <psychon@znc.in>",
@@ -10,7 +10,7 @@ authors = [
 repository = "https://github.com/psychon/x11rb"
 readme = "../README.md"
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.68"
 license = "MIT OR Apache-2.0"
 keywords = ["xcb", "X11", "async"]
 
@@ -24,8 +24,8 @@ blocking = "1.5"
 event-listener = "5.0"
 futures-lite = "2.2"
 tracing = { version = "0.1.33", default-features = false }
-x11rb = { version = "0.13.1", path = "../x11rb", default-features = false }
-x11rb-protocol = { version = "0.13.1", default-features = false, features = ["std"], path = "../x11rb-protocol" }
+x11rb = { version = "0.14.0", path = "../x11rb", default-features = false }
+x11rb-protocol = { version = "0.14.0", default-features = false, features = ["std"], path = "../x11rb-protocol" }
 
 [features]
 # Enable this feature to enable all the X11 extensions

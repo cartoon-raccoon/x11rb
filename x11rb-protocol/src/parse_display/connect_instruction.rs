@@ -12,10 +12,7 @@ use alloc::vec::Vec;
 pub enum ConnectAddress<'a> {
     /// Connect to this hostname and port over TCP.
     Hostname(&'a str, u16),
-    /// Connect to this Unix socket.
-    ///
-    /// First, the given path should be attempted in the abstract namespace. Only if that fails,
-    /// then the named socket with the given name should be tried.
+    /// Connect to this Unix socket by path.
     Socket(String),
 }
 
@@ -32,7 +29,9 @@ pub(super) fn connect_addresses(p: &ParsedDisplay) -> impl Iterator<Item = Conne
 
     let mut targets = Vec::new();
 
-    if (protocol.is_none() || protocol.as_deref() != Some("unix"))
+    if protocol.as_deref() == Some("unix") && host.starts_with('/') {
+        targets.push(ConnectAddress::Socket(host.clone()));
+    } else if (protocol.is_none() || protocol.as_deref() != Some("unix"))
         && !host.is_empty()
         && host != "unix"
     {
@@ -57,8 +56,11 @@ pub(super) fn connect_addresses(p: &ParsedDisplay) -> impl Iterator<Item = Conne
 #[cfg(all(test, feature = "std"))]
 mod tests {
     // make sure iterator properties are clean
-    use super::{super::parse_display, ConnectAddress};
-    use alloc::{vec, vec::Vec};
+    use super::{
+        super::{parse_display, parse_display_with_file_exists_callback},
+        ConnectAddress,
+    };
+    use alloc::{format, vec, vec::Vec};
 
     #[test]
     fn basic_test() {
@@ -93,5 +95,29 @@ mod tests {
         let ci = ci.collect::<Vec<_>>();
 
         assert_eq!(ci, vec![ConnectAddress::Socket("/tmp/.X11-unix/X0".into())]);
+    }
+
+    #[test]
+    fn try_over_unix_socket_path() {
+        const SOCKET_PATH: &str = "/path/to/socket";
+        let pd = parse_display_with_file_exists_callback(&format!("unix:{SOCKET_PATH}"), |path| {
+            path == SOCKET_PATH
+        })
+        .unwrap();
+        let ci = pd.connect_instruction();
+        let ci = ci.collect::<Vec<_>>();
+
+        assert_eq!(ci, vec![ConnectAddress::Socket(SOCKET_PATH.into())]);
+    }
+
+    #[test]
+    fn try_over_unix_socket_path2() {
+        const SOCKET_PATH: &str = "/path/to/socket";
+        let pd = parse_display_with_file_exists_callback(SOCKET_PATH, |path| path == SOCKET_PATH)
+            .unwrap();
+        let ci = pd.connect_instruction();
+        let ci = ci.collect::<Vec<_>>();
+
+        assert_eq!(ci, vec![ConnectAddress::Socket(SOCKET_PATH.into())]);
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "x11rb"
-version = "0.13.1"
+version = "0.14.0"
 description = "Rust bindings to X11"
 authors = [
     "Uli Schlachter <psychon@znc.in>",
@@ -10,7 +10,7 @@ authors = [
 repository = "https://github.com/psychon/x11rb"
 readme = "../README.md"
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.68"
 license = "MIT OR Apache-2.0"
 keywords = ["xcb", "X11"]
 
@@ -18,11 +18,11 @@ keywords = ["xcb", "X11"]
 mostly-unused = true
 
 [dependencies]
-x11rb-protocol = { version = "0.13.1", default-features = false, features = ["std"], path = "../x11rb-protocol" }
+x11rb-protocol = { version = "0.14.0", default-features = false, features = ["std"], path = "../x11rb-protocol" }
 libc = { version = "0.2", optional = true }
-libloading = { version = "0.8.0", optional = true }
+libloading = { version = ">=0.8.0, <0.10.0", optional = true }
 once_cell = { version = "1.19", optional = true }
-raw-window-handle = { version = "0.5.0", optional = true }
+raw-window-handle = { version = "0.6.0", optional = true }
 as-raw-xcb-connection = { version = "1.0", optional = true }
 tracing = { version = "0.1", optional = true, default-features = false }
 rustix = { version = "1.0", default-features = false, features = ["std", "event", "fs", "net", "system"] }
